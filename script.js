@@ -32,16 +32,23 @@ const openCustomizeButton = document.getElementById("openCustomizeButton");
 const closeCustomizeButton = document.getElementById("closeCustomizeButton");
 const customizeModal = document.getElementById("customizeModal");
 const modalBackdrop = document.getElementById("modalBackdrop");
-const activityInput = document.getElementById("activityInput");
+const activityNameInput = document.getElementById("activityNameInput");
+const activityList = document.getElementById("activityList");
+const addButton = document.getElementById("addButton");
+const removeButton = document.getElementById("removeButton");
+const moveUpButton = document.getElementById("moveUpButton");
+const moveDownButton = document.getElementById("moveDownButton");
 const saveButton = document.getElementById("saveButton");
 const resetButton = document.getElementById("resetButton");
 const saveStatus = document.getElementById("saveStatus");
 
 let activities = loadActivities();
+let draftActivities = [...activities];
 let rotation = 0;
 let isSpinning = false;
 let audioContext = null;
 let lastTickIndex = null;
+let selectedIndex = 0;
 
 function loadActivities() {
   try {
@@ -70,8 +77,69 @@ function saveActivities(nextActivities) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextActivities));
 }
 
-function syncTextarea() {
-  activityInput.value = activities.join("\n");
+function selectActivity(index) {
+  if (!draftActivities.length) {
+    selectedIndex = -1;
+    activityNameInput.value = "";
+    updateActionButtons();
+    return;
+  }
+
+  selectedIndex = Math.max(0, Math.min(index, draftActivities.length - 1));
+  activityNameInput.value = draftActivities[selectedIndex];
+  renderActivityList();
+  updateActionButtons();
+}
+
+function updateActionButtons() {
+  const hasSelection = selectedIndex >= 0 && selectedIndex < draftActivities.length;
+  removeButton.disabled = !hasSelection;
+  moveUpButton.disabled = !hasSelection || selectedIndex === 0;
+  moveDownButton.disabled = !hasSelection || selectedIndex === draftActivities.length - 1;
+}
+
+function renderActivityList() {
+  activityList.innerHTML = "";
+
+  draftActivities.forEach((activity, index) => {
+    const listItem = document.createElement("li");
+    const button = document.createElement("button");
+    const indexBubble = document.createElement("span");
+    const name = document.createElement("span");
+
+    button.type = "button";
+    button.className = "activity-item-button";
+    if (index === selectedIndex) {
+      button.classList.add("is-selected");
+    }
+
+    button.addEventListener("click", () => {
+      selectActivity(index);
+    });
+
+    indexBubble.className = "activity-item-index";
+    indexBubble.textContent = String(index + 1);
+
+    name.className = "activity-item-name";
+    name.textContent = activity;
+
+    button.append(indexBubble, name);
+    listItem.append(button);
+    activityList.append(listItem);
+  });
+
+  updateActionButtons();
+}
+
+function syncDraftActivities() {
+  draftActivities = [...activities];
+  selectedIndex = draftActivities.length ? 0 : -1;
+  renderActivityList();
+  if (selectedIndex >= 0) {
+    activityNameInput.value = draftActivities[selectedIndex];
+  } else {
+    activityNameInput.value = "";
+  }
 }
 
 function setStatus(message) {
@@ -79,11 +147,13 @@ function setStatus(message) {
 }
 
 function openCustomizeModal() {
+  syncDraftActivities();
   customizeModal.hidden = false;
   document.body.style.overflow = "hidden";
   setStatus("");
   window.setTimeout(() => {
-    activityInput.focus();
+    activityNameInput.focus();
+    activityNameInput.select();
   }, 0);
 }
 
@@ -352,11 +422,65 @@ function spinWheel() {
 }
 
 function parseActivityInput() {
-  return activityInput.value
-    .split("\n")
+  return draftActivities
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 24);
+}
+
+function addActivity() {
+  if (draftActivities.length >= 24) {
+    setStatus("You can save up to 24 activities.");
+    return;
+  }
+
+  draftActivities.push("New activity");
+  setStatus("Activity added. Rename it if you want.");
+  selectActivity(draftActivities.length - 1);
+  activityNameInput.focus();
+  activityNameInput.select();
+}
+
+function removeActivity() {
+  if (selectedIndex < 0 || selectedIndex >= draftActivities.length) {
+    return;
+  }
+
+  draftActivities.splice(selectedIndex, 1);
+  setStatus("Activity removed.");
+  if (!draftActivities.length) {
+    selectedIndex = -1;
+    activityNameInput.value = "";
+    renderActivityList();
+    return;
+  }
+
+  selectActivity(Math.min(selectedIndex, draftActivities.length - 1));
+}
+
+function moveActivity(offset) {
+  if (selectedIndex < 0 || selectedIndex >= draftActivities.length) {
+    return;
+  }
+
+  const targetIndex = selectedIndex + offset;
+  if (targetIndex < 0 || targetIndex >= draftActivities.length) {
+    return;
+  }
+
+  const [activity] = draftActivities.splice(selectedIndex, 1);
+  draftActivities.splice(targetIndex, 0, activity);
+  setStatus(offset < 0 ? "Moved up." : "Moved down.");
+  selectActivity(targetIndex);
+}
+
+function updateSelectedActivityName() {
+  if (selectedIndex < 0 || selectedIndex >= draftActivities.length) {
+    return;
+  }
+
+  draftActivities[selectedIndex] = activityNameInput.value;
+  renderActivityList();
 }
 
 function handleSave() {
@@ -369,6 +493,7 @@ function handleSave() {
 
   activities = nextActivities;
   saveActivities(activities);
+  syncDraftActivities();
   rotation = 0;
   drawWheel(rotation);
   result.textContent = "Tap spin to choose";
@@ -379,7 +504,7 @@ function handleSave() {
 function handleReset() {
   activities = [...DEFAULT_ACTIVITIES];
   saveActivities(activities);
-  syncTextarea();
+  syncDraftActivities();
   rotation = 0;
   drawWheel(rotation);
   result.textContent = "Tap spin to choose";
@@ -390,6 +515,17 @@ spinButton.addEventListener("click", spinWheel);
 openCustomizeButton.addEventListener("click", openCustomizeModal);
 closeCustomizeButton.addEventListener("click", closeCustomizeModal);
 modalBackdrop.addEventListener("click", closeCustomizeModal);
+addButton.addEventListener("click", addActivity);
+removeButton.addEventListener("click", removeActivity);
+moveUpButton.addEventListener("click", () => moveActivity(-1));
+moveDownButton.addEventListener("click", () => moveActivity(1));
+activityNameInput.addEventListener("input", updateSelectedActivityName);
+activityNameInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    activityNameInput.blur();
+  }
+});
 saveButton.addEventListener("click", handleSave);
 resetButton.addEventListener("click", handleReset);
 window.addEventListener("resize", fitCanvasForDisplay);
@@ -399,7 +535,7 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-syncTextarea();
+syncDraftActivities();
 fitCanvasForDisplay();
 
 if ("serviceWorker" in navigator) {

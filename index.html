@@ -66,15 +66,32 @@
         </div>
 
         <p class="panel-copy">
-          Add one activity per line. Changes are saved on this device.
+          Tap an activity to edit or reorder it. Changes are saved on this device.
         </p>
 
-        <label class="sr-only" for="activityInput">Activity list</label>
-        <textarea
-          id="activityInput"
-          spellcheck="false"
-          placeholder="Bike ride&#10;Draw together&#10;Play outside"
-        ></textarea>
+        <div class="activity-editor">
+          <label class="sr-only" for="activityNameInput">Activity name</label>
+          <input
+            id="activityNameInput"
+            class="activity-name-input"
+            type="text"
+            maxlength="40"
+            placeholder="Edit selected activity"
+            autocomplete="off"
+          />
+
+          <div class="list-actions">
+            <button id="addButton" class="secondary-button" type="button">Add</button>
+            <button id="removeButton" class="ghost-button" type="button">Remove</button>
+            <button id="moveUpButton" class="ghost-button" type="button">Move up</button>
+            <button id="moveDownButton" class="ghost-button" type="button">Move down</button>
+          </div>
+        </div>
+
+        <div class="activity-list-shell">
+          <p class="list-label">Activity list</p>
+          <ul id="activityList" class="activity-list" aria-label="Activity list"></ul>
+        </div>
 
         <div class="config-actions">
           <button id="saveButton" class="secondary-button" type="button">Save list</button>
