@@ -78,6 +78,10 @@ function saveActivities(nextActivities) {
 }
 
 function selectActivity(index) {
+  if (!activityNameInput) {
+    return;
+  }
+
   if (!draftActivities.length) {
     selectedIndex = -1;
     activityNameInput.value = "";
@@ -92,6 +96,10 @@ function selectActivity(index) {
 }
 
 function updateActionButtons() {
+  if (!removeButton || !moveUpButton || !moveDownButton) {
+    return;
+  }
+
   const hasSelection = selectedIndex >= 0 && selectedIndex < draftActivities.length;
   removeButton.disabled = !hasSelection;
   moveUpButton.disabled = !hasSelection || selectedIndex === 0;
@@ -99,6 +107,10 @@ function updateActionButtons() {
 }
 
 function renderActivityList() {
+  if (!activityList) {
+    return;
+  }
+
   activityList.innerHTML = "";
 
   draftActivities.forEach((activity, index) => {
@@ -132,6 +144,10 @@ function renderActivityList() {
 }
 
 function syncDraftActivities() {
+  if (!activityNameInput) {
+    return;
+  }
+
   draftActivities = [...activities];
   selectedIndex = draftActivities.length ? 0 : -1;
   renderActivityList();
@@ -143,10 +159,16 @@ function syncDraftActivities() {
 }
 
 function setStatus(message) {
-  saveStatus.textContent = message;
+  if (saveStatus) {
+    saveStatus.textContent = message;
+  }
 }
 
 function openCustomizeModal() {
+  if (!customizeModal || !activityNameInput) {
+    return;
+  }
+
   syncDraftActivities();
   customizeModal.hidden = false;
   document.body.style.overflow = "hidden";
@@ -158,9 +180,15 @@ function openCustomizeModal() {
 }
 
 function closeCustomizeModal() {
+  if (!customizeModal) {
+    return;
+  }
+
   customizeModal.hidden = true;
   document.body.style.overflow = "";
-  openCustomizeButton.focus();
+  if (openCustomizeButton) {
+    openCustomizeButton.focus();
+  }
 }
 
 function fitCanvasForDisplay() {
@@ -429,6 +457,10 @@ function parseActivityInput() {
 }
 
 function addActivity() {
+  if (!activityNameInput) {
+    return;
+  }
+
   if (draftActivities.length >= 24) {
     setStatus("You can save up to 24 activities.");
     return;
@@ -475,6 +507,10 @@ function moveActivity(offset) {
 }
 
 function updateSelectedActivityName() {
+  if (!activityNameInput) {
+    return;
+  }
+
   if (selectedIndex < 0 || selectedIndex >= draftActivities.length) {
     return;
   }
@@ -512,22 +548,53 @@ function handleReset() {
 }
 
 spinButton.addEventListener("click", spinWheel);
-openCustomizeButton.addEventListener("click", openCustomizeModal);
-closeCustomizeButton.addEventListener("click", closeCustomizeModal);
-modalBackdrop.addEventListener("click", closeCustomizeModal);
-addButton.addEventListener("click", addActivity);
-removeButton.addEventListener("click", removeActivity);
-moveUpButton.addEventListener("click", () => moveActivity(-1));
-moveDownButton.addEventListener("click", () => moveActivity(1));
-activityNameInput.addEventListener("input", updateSelectedActivityName);
-activityNameInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    activityNameInput.blur();
-  }
-});
-saveButton.addEventListener("click", handleSave);
-resetButton.addEventListener("click", handleReset);
+
+if (openCustomizeButton) {
+  openCustomizeButton.addEventListener("click", openCustomizeModal);
+}
+
+if (closeCustomizeButton) {
+  closeCustomizeButton.addEventListener("click", closeCustomizeModal);
+}
+
+if (modalBackdrop) {
+  modalBackdrop.addEventListener("click", closeCustomizeModal);
+}
+
+if (addButton) {
+  addButton.addEventListener("click", addActivity);
+}
+
+if (removeButton) {
+  removeButton.addEventListener("click", removeActivity);
+}
+
+if (moveUpButton) {
+  moveUpButton.addEventListener("click", () => moveActivity(-1));
+}
+
+if (moveDownButton) {
+  moveDownButton.addEventListener("click", () => moveActivity(1));
+}
+
+if (activityNameInput) {
+  activityNameInput.addEventListener("input", updateSelectedActivityName);
+  activityNameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      activityNameInput.blur();
+    }
+  });
+}
+
+if (saveButton) {
+  saveButton.addEventListener("click", handleSave);
+}
+
+if (resetButton) {
+  resetButton.addEventListener("click", handleReset);
+}
+
 window.addEventListener("resize", fitCanvasForDisplay);
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !customizeModal.hidden) {
@@ -540,6 +607,17 @@ fitCanvasForDisplay();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+      .then(() => caches.keys())
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith("activity-wheel-"))
+            .map((key) => caches.delete(key)),
+        ),
+      )
+      .catch(() => {});
   });
 }

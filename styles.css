@@ -96,8 +96,7 @@ body::after {
 }
 
 .wheel-frame {
-  width: min(100%, min(68dvh, 920px));
-  max-width: min(100%, calc(100dvh - 19rem));
+  width: min(100%, 78vw, 72vh, 920px);
   aspect-ratio: 1;
   position: relative;
   animation: float-in 700ms ease-out both;
@@ -238,7 +237,7 @@ body::after {
 .modal-panel {
   position: relative;
   width: min(100%, 520px);
-  max-height: min(84vh, 760px);
+  max-height: min(84vh, 84dvh, 760px);
   overflow: auto;
   z-index: 1;
   animation: float-in 220ms ease-out both;
@@ -480,7 +479,6 @@ button:focus-visible {
   }
 
   .wheel-frame {
-    width: min(100%, min(56dvh, 920px));
-    max-width: min(100%, calc(100dvh - 17rem));
+    width: min(100%, 88vw, 56vh, 680px);
   }
 }
