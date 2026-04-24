@@ -224,6 +224,66 @@ function playTickSound(intensity = 1) {
   oscillator.stop(now + 0.06);
 }
 
+function playButtonClickSound() {
+  const context = ensureAudioContext();
+  if (!context) {
+    return;
+  }
+
+  const now = context.currentTime;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(520, now);
+  oscillator.frequency.exponentialRampToValueAtTime(310, now + 0.045);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.045, now + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+
+  oscillator.start(now);
+  oscillator.stop(now + 0.055);
+}
+
+function playCelebrationSound() {
+  const context = ensureAudioContext();
+  if (!context) {
+    return;
+  }
+
+  const now = context.currentTime;
+  const notes = [
+    { frequency: 784, start: 0, duration: 0.16, type: "triangle", volume: 0.07 },
+    { frequency: 988, start: 0.1, duration: 0.18, type: "triangle", volume: 0.065 },
+    { frequency: 1319, start: 0.22, duration: 0.34, type: "sine", volume: 0.08 },
+  ];
+
+  notes.forEach(({ frequency, start, duration, type, volume }) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const noteStart = now + start;
+    const noteEnd = noteStart + duration;
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, noteStart);
+    oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.015, noteEnd);
+
+    gain.gain.setValueAtTime(0.0001, noteStart);
+    gain.gain.exponentialRampToValueAtTime(volume, noteStart + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, noteEnd);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+
+    oscillator.start(noteStart);
+    oscillator.stop(noteEnd + 0.02);
+  });
+}
+
 function maybePlaySpinTick(previousRotation, currentRotation) {
   const sliceAngle = (Math.PI * 2) / activities.length;
   const previousIndex = Math.floor(previousRotation / sliceAngle);
@@ -254,6 +314,7 @@ function spinWheel() {
   spinButton.disabled = true;
   result.textContent = "Spinning...";
   ensureAudioContext();
+  playButtonClickSound();
   lastTickIndex = null;
 
   const extraSpins = 5 + Math.random() * 3;
@@ -279,7 +340,8 @@ function spinWheel() {
 
     rotation = targetRotation % (Math.PI * 2);
     drawWheel(rotation);
-    playTickSound(0.7);
+    playTickSound(0.55);
+    playCelebrationSound();
     const selectedIndex = getSelectedIndex(rotation);
     result.textContent = activities[selectedIndex];
     spinButton.disabled = false;
