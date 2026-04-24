@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffb26f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ActivityWheel" />
+    <title>Activity Wheel</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="wheel-panel">
+        <div class="wheel-frame">
+          <div class="wheel-pointer" aria-hidden="true"></div>
+          <canvas
+            id="wheel"
+            width="720"
+            height="720"
+            aria-label="Activity selection wheel"
+            role="img"
+          ></canvas>
+        </div>
+
+        <div class="status-card" aria-live="polite">
+          <p class="status-label">Selected activity</p>
+          <h1 id="result">Tap spin to choose</h1>
+        </div>
+
+        <button id="spinButton" class="spin-button" type="button">Spin</button>
+      </section>
+
+      <aside class="config-panel">
+        <div class="panel-header">
+          <p class="eyebrow">Customize</p>
+          <h2>Activities</h2>
+          <p class="panel-copy">
+            Add one activity per line. Changes are saved on this device.
+          </p>
+        </div>
+
+        <label class="sr-only" for="activityInput">Activity list</label>
+        <textarea
+          id="activityInput"
+          spellcheck="false"
+          placeholder="Bike ride&#10;Draw together&#10;Play outside"
+        ></textarea>
+
+        <div class="config-actions">
+          <button id="saveButton" class="secondary-button" type="button">Save list</button>
+          <button id="resetButton" class="ghost-button" type="button">Reset defaults</button>
+        </div>
+
+        <p id="saveStatus" class="save-status" aria-live="polite"></p>
+      </aside>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

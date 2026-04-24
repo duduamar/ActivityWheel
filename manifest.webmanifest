@@ -1,0 +1,16 @@
+{
+  "name": "ActivityWheel",
+  "short_name": "Wheel",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fff3a3",
+  "theme_color": "#ffb26f",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
