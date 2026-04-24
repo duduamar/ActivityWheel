@@ -28,6 +28,10 @@ const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 const spinButton = document.getElementById("spinButton");
 const result = document.getElementById("result");
+const openCustomizeButton = document.getElementById("openCustomizeButton");
+const closeCustomizeButton = document.getElementById("closeCustomizeButton");
+const customizeModal = document.getElementById("customizeModal");
+const modalBackdrop = document.getElementById("modalBackdrop");
 const activityInput = document.getElementById("activityInput");
 const saveButton = document.getElementById("saveButton");
 const resetButton = document.getElementById("resetButton");
@@ -70,6 +74,21 @@ function syncTextarea() {
 
 function setStatus(message) {
   saveStatus.textContent = message;
+}
+
+function openCustomizeModal() {
+  customizeModal.hidden = false;
+  document.body.style.overflow = "hidden";
+  setStatus("");
+  window.setTimeout(() => {
+    activityInput.focus();
+  }, 0);
+}
+
+function closeCustomizeModal() {
+  customizeModal.hidden = true;
+  document.body.style.overflow = "";
+  openCustomizeButton.focus();
 }
 
 function fitCanvasForDisplay() {
@@ -226,6 +245,7 @@ function handleSave() {
   drawWheel(rotation);
   result.textContent = "Tap spin to choose";
   setStatus("Saved on this device.");
+  window.setTimeout(closeCustomizeModal, 250);
 }
 
 function handleReset() {
@@ -239,9 +259,17 @@ function handleReset() {
 }
 
 spinButton.addEventListener("click", spinWheel);
+openCustomizeButton.addEventListener("click", openCustomizeModal);
+closeCustomizeButton.addEventListener("click", closeCustomizeModal);
+modalBackdrop.addEventListener("click", closeCustomizeModal);
 saveButton.addEventListener("click", handleSave);
 resetButton.addEventListener("click", handleReset);
 window.addEventListener("resize", fitCanvasForDisplay);
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !customizeModal.hidden) {
+    closeCustomizeModal();
+  }
+});
 
 syncTextarea();
 fitCanvasForDisplay();
