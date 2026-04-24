@@ -40,6 +40,8 @@ const saveStatus = document.getElementById("saveStatus");
 let activities = loadActivities();
 let rotation = 0;
 let isSpinning = false;
+let audioContext = null;
+let lastTickIndex = null;
 
 function loadActivities() {
   try {
@@ -178,6 +180,65 @@ function easeOutCubic(value) {
   return 1 - (1 - value) ** 3;
 }
 
+function ensureAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return null;
+  }
+
+  if (!audioContext) {
+    audioContext = new AudioContextClass();
+  }
+
+  if (audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {});
+  }
+
+  return audioContext;
+}
+
+function playTickSound(intensity = 1) {
+  const context = ensureAudioContext();
+  if (!context) {
+    return;
+  }
+
+  const now = context.currentTime;
+  const gain = context.createGain();
+  const oscillator = context.createOscillator();
+  const volume = Math.max(0.018, Math.min(0.06, intensity * 0.05));
+  const frequency = 1400 + intensity * 500;
+
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(frequency, now);
+  oscillator.frequency.exponentialRampToValueAtTime(Math.max(900, frequency * 0.68), now + 0.045);
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+
+  oscillator.start(now);
+  oscillator.stop(now + 0.06);
+}
+
+function maybePlaySpinTick(previousRotation, currentRotation) {
+  const sliceAngle = (Math.PI * 2) / activities.length;
+  const previousIndex = Math.floor(previousRotation / sliceAngle);
+  const currentIndex = Math.floor(currentRotation / sliceAngle);
+
+  if (currentIndex === previousIndex || currentIndex === lastTickIndex) {
+    return;
+  }
+
+  lastTickIndex = currentIndex;
+  const delta = Math.abs(currentRotation - previousRotation);
+  const intensity = Math.min(1, delta / 0.28);
+  playTickSound(intensity);
+}
+
 function getSelectedIndex(finalRotation) {
   const sliceAngle = (Math.PI * 2) / activities.length;
   const normalized = ((Math.PI * 1.5 - finalRotation) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
@@ -192,6 +253,8 @@ function spinWheel() {
   isSpinning = true;
   spinButton.disabled = true;
   result.textContent = "Spinning...";
+  ensureAudioContext();
+  lastTickIndex = null;
 
   const extraSpins = 5 + Math.random() * 3;
   const targetRotation = rotation + extraSpins * Math.PI * 2 + Math.random() * Math.PI * 2;
@@ -204,7 +267,9 @@ function spinWheel() {
     const progress = Math.min(elapsed / duration, 1);
     const eased = easeOutCubic(progress);
 
+    const previousRotation = rotation;
     rotation = startRotation + (targetRotation - startRotation) * eased;
+    maybePlaySpinTick(previousRotation, rotation);
     drawWheel(rotation);
 
     if (progress < 1) {
@@ -214,6 +279,7 @@ function spinWheel() {
 
     rotation = targetRotation % (Math.PI * 2);
     drawWheel(rotation);
+    playTickSound(0.7);
     const selectedIndex = getSelectedIndex(rotation);
     result.textContent = activities[selectedIndex];
     spinButton.disabled = false;
