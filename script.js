@@ -1,5 +1,5 @@
 const STORAGE_KEY = "activity-wheel.activities";
-const APP_COMMIT_SHA = "2f65589";
+const APP_COMMIT_SHA = window.APP_COMMIT_SHA || "local";
 
 const DEFAULT_ACTIVITIES = [
   "Bike ride",
