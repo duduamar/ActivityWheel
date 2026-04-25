@@ -32,7 +32,6 @@ const result = document.getElementById("result");
 const openCustomizeButton = document.getElementById("openCustomizeButton");
 const closeCustomizeButton = document.getElementById("closeCustomizeButton");
 const customizeModal = document.getElementById("customizeModal");
-const modalBackdrop = document.getElementById("modalBackdrop");
 const activityNameInput = document.getElementById("activityNameInput");
 const activityList = document.getElementById("activityList");
 const addButton = document.getElementById("addButton");
@@ -40,7 +39,6 @@ const removeButton = document.getElementById("removeButton");
 const moveUpButton = document.getElementById("moveUpButton");
 const moveDownButton = document.getElementById("moveDownButton");
 const saveButton = document.getElementById("saveButton");
-const resetButton = document.getElementById("resetButton");
 const saveStatus = document.getElementById("saveStatus");
 const versionLabel = document.getElementById("versionLabel");
 
@@ -539,16 +537,6 @@ function handleSave() {
   window.setTimeout(closeCustomizeModal, 250);
 }
 
-function handleReset() {
-  activities = [...DEFAULT_ACTIVITIES];
-  saveActivities(activities);
-  syncDraftActivities();
-  rotation = 0;
-  drawWheel(rotation);
-  result.textContent = "Tap spin to choose";
-  setStatus("Default activities restored.");
-}
-
 spinButton.addEventListener("click", spinWheel);
 
 if (openCustomizeButton) {
@@ -557,10 +545,6 @@ if (openCustomizeButton) {
 
 if (closeCustomizeButton) {
   closeCustomizeButton.addEventListener("click", closeCustomizeModal);
-}
-
-if (modalBackdrop) {
-  modalBackdrop.addEventListener("click", closeCustomizeModal);
 }
 
 if (addButton) {
@@ -591,10 +575,6 @@ if (activityNameInput) {
 
 if (saveButton) {
   saveButton.addEventListener("click", handleSave);
-}
-
-if (resetButton) {
-  resetButton.addEventListener("click", handleReset);
 }
 
 window.addEventListener("resize", fitCanvasForDisplay);
