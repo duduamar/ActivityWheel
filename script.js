@@ -1,4 +1,5 @@
 const STORAGE_KEY = "activity-wheel.activities";
+const APP_VERSION = "v2026.04.24-1";
 
 const DEFAULT_ACTIVITIES = [
   "Bike ride",
@@ -41,6 +42,7 @@ const moveDownButton = document.getElementById("moveDownButton");
 const saveButton = document.getElementById("saveButton");
 const resetButton = document.getElementById("resetButton");
 const saveStatus = document.getElementById("saveStatus");
+const versionLabel = document.getElementById("versionLabel");
 
 let activities = loadActivities();
 let draftActivities = [...activities];
@@ -604,6 +606,10 @@ window.addEventListener("keydown", (event) => {
 
 syncDraftActivities();
 fitCanvasForDisplay();
+
+if (versionLabel) {
+  versionLabel.textContent = `Version ${APP_VERSION}`;
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
