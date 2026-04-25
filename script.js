@@ -1,5 +1,5 @@
 const STORAGE_KEY = "activity-wheel.activities";
-const APP_VERSION = "v2026.04.24-1";
+const APP_COMMIT_SHA = "2f65589";
 
 const DEFAULT_ACTIVITIES = [
   "Bike ride",
@@ -608,7 +608,7 @@ syncDraftActivities();
 fitCanvasForDisplay();
 
 if (versionLabel) {
-  versionLabel.textContent = `Version ${APP_VERSION}`;
+  versionLabel.textContent = `version: ${APP_COMMIT_SHA}`;
 }
 
 if ("serviceWorker" in navigator) {
