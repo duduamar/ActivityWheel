@@ -22,6 +22,10 @@
     <main class="app-shell">
       <section class="wheel-panel">
         <div class="wheel-toolbar">
+          <div class="set-switcher">
+            <label class="set-switcher-label" for="activeSetSelect">Activity set</label>
+            <select id="activeSetSelect" class="set-select" aria-label="Choose an activity set"></select>
+          </div>
           <button id="openCustomizeButton" class="ghost-button toolbar-button" type="button">
             Customize activities
           </button>
@@ -67,8 +71,27 @@
         </div>
 
         <p class="panel-copy">
-          Tap an activity to edit or reorder it. Changes are saved on this device.
+          Save multiple activity sets on this device, switch between them, and edit the current one.
         </p>
+
+        <div class="set-editor">
+          <label class="list-label" for="modalSetSelect">Saved set</label>
+          <div class="set-editor-row">
+            <select id="modalSetSelect" class="set-select" aria-label="Choose a saved activity set"></select>
+            <button id="newSetButton" class="secondary-button" type="button">New set</button>
+            <button id="deleteSetButton" class="ghost-button" type="button">Delete set</button>
+          </div>
+
+          <label class="sr-only" for="setNameInput">Set name</label>
+          <input
+            id="setNameInput"
+            class="activity-name-input"
+            type="text"
+            maxlength="32"
+            placeholder="Name this activity set"
+            autocomplete="off"
+          />
+        </div>
 
         <div class="activity-editor">
           <label class="sr-only" for="activityNameInput">Activity name</label>
@@ -95,7 +118,7 @@
         </div>
 
         <div class="config-actions">
-          <button id="saveButton" class="secondary-button" type="button">Save list</button>
+          <button id="saveButton" class="secondary-button" type="button">Save set</button>
         </div>
 
         <p id="saveStatus" class="save-status" aria-live="polite"></p>

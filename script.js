@@ -1,4 +1,5 @@
-const STORAGE_KEY = "activity-wheel.activities";
+const STORAGE_KEY = "activity-wheel.activity-sets";
+const LEGACY_STORAGE_KEY = "activity-wheel.activities";
 const APP_COMMIT_SHA = window.APP_COMMIT_SHA || "local";
 
 const DEFAULT_ACTIVITIES = [
@@ -32,6 +33,11 @@ const result = document.getElementById("result");
 const openCustomizeButton = document.getElementById("openCustomizeButton");
 const closeCustomizeButton = document.getElementById("closeCustomizeButton");
 const customizeModal = document.getElementById("customizeModal");
+const activeSetSelect = document.getElementById("activeSetSelect");
+const modalSetSelect = document.getElementById("modalSetSelect");
+const setNameInput = document.getElementById("setNameInput");
+const newSetButton = document.getElementById("newSetButton");
+const deleteSetButton = document.getElementById("deleteSetButton");
 const activityNameInput = document.getElementById("activityNameInput");
 const activityList = document.getElementById("activityList");
 const addButton = document.getElementById("addButton");
@@ -42,39 +48,230 @@ const saveButton = document.getElementById("saveButton");
 const saveStatus = document.getElementById("saveStatus");
 const versionLabel = document.getElementById("versionLabel");
 
-let activities = loadActivities();
+let store = loadStore();
+let activities = getSetById(store.activeSetId).activities.map((item) => item);
 let draftActivities = [...activities];
+let draftSetId = store.activeSetId;
+let draftSetName = getSetById(draftSetId).name;
 let rotation = 0;
 let isSpinning = false;
 let audioContext = null;
 let lastTickIndex = null;
 let selectedIndex = 0;
 
-function loadActivities() {
+function createSetId() {
+  return `set-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function cleanActivities(items) {
+  return items
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .slice(0, 24);
+}
+
+function cleanSetName(name, index = 0) {
+  const trimmed = String(name || "").trim().slice(0, 32);
+  return trimmed || `Set ${index + 1}`;
+}
+
+function createDefaultStore() {
+  const defaultId = createSetId();
+  return {
+    activeSetId: defaultId,
+    sets: [
+      {
+        id: defaultId,
+        name: "Everyday activities",
+        activities: [...DEFAULT_ACTIVITIES],
+      },
+    ],
+  };
+}
+
+function createStoreFromLegacyActivities(legacyActivities, name = "My activities") {
+  const cleaned = cleanActivities(Array.isArray(legacyActivities) ? legacyActivities : []);
+  if (cleaned.length < 2) {
+    return createDefaultStore();
+  }
+
+  const legacyId = createSetId();
+  return {
+    activeSetId: legacyId,
+    sets: [
+      {
+        id: legacyId,
+        name: cleanSetName(name, 0),
+        activities: cleaned,
+      },
+    ],
+  };
+}
+
+function normalizeStore(candidate) {
+  if (Array.isArray(candidate)) {
+    return createStoreFromLegacyActivities(candidate);
+  }
+
+  if (!candidate || !Array.isArray(candidate.sets)) {
+    return createDefaultStore();
+  }
+
+  const cleanedSets = candidate.sets
+    .map((set, index) => {
+      const cleaned = cleanActivities(Array.isArray(set?.activities) ? set.activities : []);
+      if (cleaned.length < 2) {
+        return null;
+      }
+
+      return {
+        id: String(set?.id || createSetId()),
+        name: cleanSetName(set?.name, index),
+        activities: cleaned,
+      };
+    })
+    .filter(Boolean);
+
+  if (!cleanedSets.length) {
+    return createDefaultStore();
+  }
+
+  const activeExists = cleanedSets.some((set) => set.id === candidate.activeSetId);
+  return {
+    activeSetId: activeExists ? candidate.activeSetId : cleanedSets[0].id,
+    sets: cleanedSets,
+  };
+}
+
+function loadStore() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return [...DEFAULT_ACTIVITIES];
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const normalized = normalizeStore(JSON.parse(stored));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      return normalized;
     }
 
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return [...DEFAULT_ACTIVITIES];
+    const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      const migrated = createStoreFromLegacyActivities(JSON.parse(legacy));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return migrated;
     }
-
-    const cleaned = parsed
-      .map((item) => String(item).trim())
-      .filter(Boolean)
-      .slice(0, 24);
-
-    return cleaned.length > 1 ? cleaned : [...DEFAULT_ACTIVITIES];
   } catch {
-    return [...DEFAULT_ACTIVITIES];
+    return createDefaultStore();
+  }
+
+  return createDefaultStore();
+}
+
+function saveStore() {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+}
+
+function getSetById(setId) {
+  return store.sets.find((set) => set.id === setId) || store.sets[0];
+}
+
+function arraysMatch(left, right) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((item, index) => item === right[index]);
+}
+
+function isDraftDirty() {
+  const savedSet = getSetById(draftSetId);
+  return (
+    savedSet.name !== cleanSetName(draftSetName, store.sets.findIndex((set) => set.id === draftSetId)) ||
+    !arraysMatch(savedSet.activities, parseActivityInput())
+  );
+}
+
+function updateSetOptions(selectElement) {
+  if (!selectElement) {
+    return;
+  }
+
+  selectElement.innerHTML = "";
+  store.sets.forEach((set) => {
+    const option = document.createElement("option");
+    option.value = set.id;
+    option.textContent = set.name;
+    selectElement.append(option);
+  });
+}
+
+function renderSetControls() {
+  updateSetOptions(activeSetSelect);
+  updateSetOptions(modalSetSelect);
+
+  if (activeSetSelect) {
+    activeSetSelect.value = store.activeSetId;
+  }
+
+  if (modalSetSelect) {
+    modalSetSelect.value = draftSetId;
+  }
+
+  if (setNameInput) {
+    setNameInput.value = draftSetName;
+  }
+
+  if (deleteSetButton) {
+    deleteSetButton.disabled = store.sets.length === 1;
   }
 }
 
-function saveActivities(nextActivities) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextActivities));
+function resetWheelState() {
+  rotation = 0;
+  drawWheel(rotation);
+  result.textContent = "Tap spin to choose";
+}
+
+function applyActiveSet(setId) {
+  const nextSet = getSetById(setId);
+  store.activeSetId = nextSet.id;
+  saveStore();
+  activities = [...nextSet.activities];
+  renderSetControls();
+  resetWheelState();
+}
+
+function loadDraftFromActiveSet() {
+  const activeSet = getSetById(store.activeSetId);
+  draftSetId = activeSet.id;
+  draftSetName = activeSet.name;
+  draftActivities = [...activeSet.activities];
+  selectedIndex = draftActivities.length ? 0 : -1;
+  renderSetControls();
+  renderActivityList();
+  if (activityNameInput) {
+    activityNameInput.value = selectedIndex >= 0 ? draftActivities[selectedIndex] : "";
+  }
+}
+
+function confirmDiscardChanges() {
+  return !isDraftDirty() || window.confirm("Discard your unsaved changes to switch sets?");
+}
+
+function requestSetSwitch(nextSetId) {
+  if (nextSetId === store.activeSetId) {
+    return;
+  }
+
+  if (!customizeModal.hidden && !confirmDiscardChanges()) {
+    renderSetControls();
+    return;
+  }
+
+  applyActiveSet(nextSetId);
+  if (!customizeModal.hidden) {
+    loadDraftFromActiveSet();
+    setStatus("");
+  }
 }
 
 function selectActivity(index) {
@@ -143,21 +340,6 @@ function renderActivityList() {
   updateActionButtons();
 }
 
-function syncDraftActivities() {
-  if (!activityNameInput) {
-    return;
-  }
-
-  draftActivities = [...activities];
-  selectedIndex = draftActivities.length ? 0 : -1;
-  renderActivityList();
-  if (selectedIndex >= 0) {
-    activityNameInput.value = draftActivities[selectedIndex];
-  } else {
-    activityNameInput.value = "";
-  }
-}
-
 function setStatus(message) {
   if (saveStatus) {
     saveStatus.textContent = message;
@@ -169,7 +351,7 @@ function openCustomizeModal() {
     return;
   }
 
-  syncDraftActivities();
+  loadDraftFromActiveSet();
   customizeModal.hidden = false;
   document.body.style.overflow = "hidden";
   setStatus("");
@@ -450,10 +632,7 @@ function spinWheel() {
 }
 
 function parseActivityInput() {
-  return draftActivities
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 24);
+  return cleanActivities(draftActivities);
 }
 
 function addActivity() {
@@ -519,6 +698,57 @@ function updateSelectedActivityName() {
   renderActivityList();
 }
 
+function createNewSet() {
+  const nextActivities = parseActivityInput();
+  if (nextActivities.length < 2) {
+    setStatus("Please keep at least 2 activities before creating a new set.");
+    return;
+  }
+
+  const nextSet = {
+    id: createSetId(),
+    name: cleanSetName(`Set ${store.sets.length + 1}`, store.sets.length),
+    activities: nextActivities,
+  };
+
+  store.sets.push(nextSet);
+  store.activeSetId = nextSet.id;
+  saveStore();
+  activities = [...nextSet.activities];
+  draftSetId = nextSet.id;
+  draftSetName = nextSet.name;
+  draftActivities = [...nextSet.activities];
+  selectedIndex = draftActivities.length ? 0 : -1;
+  renderSetControls();
+  renderActivityList();
+  resetWheelState();
+  setStatus("New set created. Rename it and save when you're ready.");
+
+  if (setNameInput) {
+    setNameInput.focus();
+    setNameInput.select();
+  }
+}
+
+function deleteCurrentSet() {
+  if (store.sets.length === 1) {
+    setStatus("Keep at least one saved set.");
+    return;
+  }
+
+  const currentSet = getSetById(store.activeSetId);
+  if (!window.confirm(`Delete "${currentSet.name}"?`)) {
+    return;
+  }
+
+  store.sets = store.sets.filter((set) => set.id !== currentSet.id);
+  store.activeSetId = store.sets[0].id;
+  saveStore();
+  applyActiveSet(store.activeSetId);
+  loadDraftFromActiveSet();
+  setStatus("Set deleted.");
+}
+
 function handleSave() {
   const nextActivities = parseActivityInput();
 
@@ -527,17 +757,49 @@ function handleSave() {
     return;
   }
 
-  activities = nextActivities;
-  saveActivities(activities);
-  syncDraftActivities();
-  rotation = 0;
-  drawWheel(rotation);
-  result.textContent = "Tap spin to choose";
-  setStatus("Saved on this device.");
+  const currentSetIndex = store.sets.findIndex((set) => set.id === store.activeSetId);
+  const currentSet = getSetById(store.activeSetId);
+  currentSet.name = cleanSetName(draftSetName, currentSetIndex);
+  currentSet.activities = nextActivities;
+  store.sets[currentSetIndex] = currentSet;
+  saveStore();
+  activities = [...nextActivities];
+  draftSetName = currentSet.name;
+  draftActivities = [...nextActivities];
+  renderSetControls();
+  renderActivityList();
+  resetWheelState();
+  setStatus("Set saved on this device.");
   window.setTimeout(closeCustomizeModal, 250);
 }
 
 spinButton.addEventListener("click", spinWheel);
+
+if (activeSetSelect) {
+  activeSetSelect.addEventListener("change", () => {
+    requestSetSwitch(activeSetSelect.value);
+  });
+}
+
+if (modalSetSelect) {
+  modalSetSelect.addEventListener("change", () => {
+    requestSetSwitch(modalSetSelect.value);
+  });
+}
+
+if (setNameInput) {
+  setNameInput.addEventListener("input", () => {
+    draftSetName = setNameInput.value;
+  });
+}
+
+if (newSetButton) {
+  newSetButton.addEventListener("click", createNewSet);
+}
+
+if (deleteSetButton) {
+  deleteSetButton.addEventListener("click", deleteCurrentSet);
+}
 
 if (openCustomizeButton) {
   openCustomizeButton.addEventListener("click", openCustomizeModal);
@@ -584,7 +846,8 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-syncDraftActivities();
+renderSetControls();
+loadDraftFromActiveSet();
 fitCanvasForDisplay();
 
 if (versionLabel) {

@@ -86,7 +86,29 @@ body::after {
 .wheel-toolbar {
   width: 100%;
   display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.set-switcher,
+.set-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.set-switcher {
+  margin-right: auto;
+}
+
+.set-switcher-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(59, 34, 64, 0.68);
 }
 
 .toolbar-button {
@@ -266,6 +288,12 @@ body::after {
   gap: 0.9rem;
 }
 
+.set-editor-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .activity-name-input {
   width: 100%;
   border: 2px solid rgba(59, 34, 64, 0.12);
@@ -278,7 +306,28 @@ body::after {
   box-shadow: inset 0 8px 18px rgba(255, 173, 97, 0.08);
 }
 
+.set-select {
+  min-width: 0;
+  border: 2px solid rgba(59, 34, 64, 0.12);
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 8px 18px rgba(255, 173, 97, 0.08);
+}
+
+.set-switcher .set-select {
+  min-width: min(18rem, 52vw);
+}
+
+.set-editor-row .set-select {
+  flex: 1 1 14rem;
+}
+
 .activity-name-input:focus-visible,
+.set-select:focus-visible,
 button:focus-visible {
   outline: 4px solid rgba(99, 212, 163, 0.4);
   outline-offset: 3px;
@@ -468,9 +517,15 @@ button:focus-visible {
   }
 
   .wheel-toolbar {
-    justify-content: center;
+    justify-content: stretch;
   }
 
+  .set-switcher {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .set-switcher .set-select,
   .toolbar-button {
     width: 100%;
   }
